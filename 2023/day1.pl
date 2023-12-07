@@ -19,7 +19,7 @@ sub string_to_number1 ($str) {
 }
 
 sub string_to_number2 ($str) {
-    my %nums = (
+    state %nums = (
         one   => 1,
         two   => 2,
         three => 3,
