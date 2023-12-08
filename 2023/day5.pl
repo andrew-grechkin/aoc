@@ -22,8 +22,7 @@ my $seeds  = (split m/: ?/, (shift @paragraphs))[1];
 my @seeds1 = map {[$_, 1]} split m/\s+/, $seeds;
 my @seeds2 = pairs split m/\s+/, $seeds;
 
-my @maps = map {[split m/\R/, s{.*? :\s*\R}{}xr]} @paragraphs;
-
+my @maps = map {[map {[map {int} split m/\s+/]} split m/\R/, s{.*? :\s*\R}{}xr]} @paragraphs;
 
 say {*STDOUT} 'Solution 1';
 my $answer1 = await run_parallel(\@seeds1);
@@ -37,11 +36,11 @@ say {*STDOUT} "Answer 2: $answer2";
 
 async sub run_parallel ($seeds_pairs_aref) {
     my @results = await Mojo::Promise->map(
-        {concurrency => 8},
+        {concurrency => 9},
         sub ($pair) {
             Mojo::IOLoop::Subprocess->new->run_p(sub {
-                my \%seeds = solve($pair->@*);
-                return min values %seeds;
+                my $min = solve($pair->@*);
+                return $min;
             })->then(sub ($value) {
                 say "Subprocess finished for @$pair: $value";
                 return $value;
@@ -57,25 +56,23 @@ async sub run_parallel ($seeds_pairs_aref) {
 }
 
 sub solve ($start, $length) {
-    my %acc;
+    my $min;
 
     for (my $i = $start; $i < $start + $length; ++$i) {
-        next if exists $acc{$i};
-
         my $point = $i;
         foreach my $map (@maps) {
             my $good_map = first {defined map_match($point, $_)} $map->@*;
             $point = $good_map ? map_match($point, $good_map) : $point;
         }
 
-        $acc{$i} = $point;
+        $min = $point if !defined $min || $point < $min;
     }
 
-    return \%acc;
+    return $min;
 }
 
-sub map_match ($num, $str) {
-    my ($dst, $src, $len) = split m/\s+/, $str;
+sub map_match ($num, $map) {
+    my ($dst, $src, $len) = ($map->@*);
     my $result;
     if ($src <= $num < $src + $len) {
         $result = $dst + ($num - $src);
