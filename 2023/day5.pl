@@ -44,8 +44,8 @@ async sub run_parallel ($seeds_pairs_aref) {
             })->then(sub ($value) {
                 say "Subprocess finished for @$pair: $value";
                 return $value;
-            })->catch(sub {
-                my $err = shift;
+            })->catch(sub ($err) {
+                chomp($err);
                 say "Subprocess error: $err";
             });
         },
